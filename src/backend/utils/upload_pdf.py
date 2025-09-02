@@ -89,6 +89,15 @@ async def process_pdf_upload(file: UploadFile) -> dict:
         config.validate_pinecone_config()
         config.validate_gemini_config()
 
+        # Debug database configuration
+        logger.info("=== Database Configuration Debug ===")
+        logger.info(f"DATABASE_USER: {config.DATABASE_USER}")
+        logger.info(f"DATABASE_PASSWORD: {'SET' if config.DATABASE_PASSWORD else 'NOT SET'}")
+        logger.info(f"DATABASE_HOST: {config.DATABASE_HOST}")
+        logger.info(f"DATABASE_PORT: {config.DATABASE_PORT}")
+        logger.info(f"DATABASE_NAME: {config.DATABASE_NAME}")
+        logger.info("===================================")
+        
         # Initialize enhanced PDF processor with Gemini integration
         pdf_processor = PDFProcessor(
             database_url=config.database_url,

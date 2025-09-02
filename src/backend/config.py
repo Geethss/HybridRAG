@@ -89,12 +89,32 @@ class Config:
 
     @property
     def database_url(self):
-        """Get database URL, validating config first."""
+        """Build a safe SQLAlchemy URL for Supabase with proper encoding."""
         self.validate_database_config()
-        return (
-            f"postgresql+psycopg2://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}"
+        
+        # Import here to avoid circular imports
+        from urllib.parse import quote_plus
+        
+        # Debug logging for database URL construction
+        logger.debug(f"DATABASE_USER: {self.DATABASE_USER}")
+        logger.debug(f"DATABASE_PASSWORD: {'*' * len(self.DATABASE_PASSWORD) if self.DATABASE_PASSWORD else 'None'}")
+        logger.debug(f"DATABASE_HOST: {self.DATABASE_HOST}")
+        logger.debug(f"DATABASE_PORT: {self.DATABASE_PORT}")
+        logger.debug(f"DATABASE_NAME: {self.DATABASE_NAME}")
+        
+        # URL-encode the user and password to handle special characters
+        enc_user = quote_plus(self.DATABASE_USER)
+        enc_pass = quote_plus(self.DATABASE_PASSWORD)
+        
+        # Build the DSN with proper postgresql+psycopg2:// scheme
+        db_url = (
+            f"postgresql+psycopg2://{enc_user}:{enc_pass}"
             f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
         )
+        
+        logger.info(f"Constructed database URL (password masked): postgresql+psycopg2://{enc_user}:***@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}")
+        
+        return db_url
 
 
 # Global config instance

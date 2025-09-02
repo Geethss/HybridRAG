@@ -45,7 +45,52 @@ class PDFProcessor:
                 from ..config import config
                 database_url = config.database_url
                 
-            self.engine = create_engine(database_url)
+            # Extract parts safely for logging
+            url_parts = database_url.split('@')
+            if len(url_parts) >= 2:
+                before_at = url_parts[0]  # postgresql+psycopg2://postgres:password
+                after_at = url_parts[1]   # db.host.com:5432/database
+                
+                # Find the last colon in the before_at part to split user:password
+                if '://' in before_at:
+                    scheme_and_user = before_at.rsplit(':', 1)[0]  # postgresql+psycopg2://postgres
+                    masked_url = f"{scheme_and_user}:***@{after_at}"
+                else:
+                    masked_url = "INVALID_URL_FORMAT"
+            else:
+                masked_url = "INVALID_URL_FORMAT"
+
+            logger.info(f"Attempting to connect to database with URL (password masked): {masked_url}")
+            print(f"Database connection attempt with URL (password masked): {masked_url}")
+            
+            # Optional: Log resolved IPv4 for debugging (don't use in connection)
+            import socket
+            try:
+                ipv4_addresses = socket.getaddrinfo(
+                    self.config.DATABASE_HOST if hasattr(self, 'config') else 'unknown',
+                    5432,
+                    socket.AF_INET,  # IPv4 only
+                    socket.SOCK_STREAM
+                )
+                if ipv4_addresses:
+                    ipv4 = ipv4_addresses[0][4][0]
+                    logger.info(f"Resolved IPv4 for {self.config.DATABASE_HOST if hasattr(self, 'config') else 'host'}: {ipv4}")
+                    print(f"Resolved IPv4: {ipv4}")
+            except Exception as e:
+                logger.warning(f"Could not resolve IPv4: {e}")
+                print(f"Could not resolve IPv4: {e}")
+            
+            # Create engine with proper Supabase settings - let driver handle DNS resolution
+            self.engine = create_engine(
+                database_url,
+                pool_pre_ping=True,
+                pool_recycle=300,
+                connect_args={
+                    "connect_timeout": 30,
+                    "options": "-c default_transaction_isolation=read committed"
+                    # Removed "host" override - let driver use URL hostname
+                }
+            )
             self.metadata = MetaData()
             
             # Gemini setup
