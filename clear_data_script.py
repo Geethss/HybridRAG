@@ -147,12 +147,12 @@ def print_data_summary(summary_data: Dict[str, Any]):
         print(f"  Status: {Colors.RED}❌ Not available/configured{Colors.END}")
         print(f"  Vectors: {Colors.RED}0{Colors.END}")
     
-    # MySQL summary
-    mysql = data.get("mysql", {})
-    print(f"\n{Colors.BOLD}🗄️  MySQL Database:{Colors.END}")
-    if mysql.get("available", False):
-        tables = mysql.get("tables", [])
-        table_count = mysql.get("table_count", 0)
+    # PostgreSQL summary
+    postgresql = data.get("postgresql", {})
+    print(f"\n{Colors.BOLD}🗄️  PostgreSQL Database:{Colors.END}")
+    if postgresql.get("available", False):
+        tables = postgresql.get("tables", [])
+        table_count = postgresql.get("table_count", 0)
         color = Colors.GREEN if table_count > 0 else Colors.YELLOW
         print(f"  Status: {Colors.GREEN}✅ Available{Colors.END}")
         print(f"  Tables: {color}{table_count}{Colors.END}")
@@ -168,7 +168,7 @@ def print_data_summary(summary_data: Dict[str, Any]):
     # Totals
     print(f"\n{Colors.BOLD}📈 TOTALS:{Colors.END}")
     print(f"  Total Vectors: {Colors.CYAN}{totals.get('pinecone_vectors', 0):,}{Colors.END}")
-    print(f"  Total Tables: {Colors.CYAN}{totals.get('mysql_tables', 0)}{Colors.END}")
+    print(f"  Total Tables: {Colors.CYAN}{totals.get('postgresql_tables', 0)}{Colors.END}")
     
     timestamp = summary_data.get("timestamp", "Unknown")
     print(f"\n{Colors.PURPLE}🕐 Last Updated: {timestamp}{Colors.END}")
@@ -224,11 +224,11 @@ def print_clear_results(clear_data: Dict[str, Any]):
         
         pre_vectors = pre_summary.get("pinecone", {}).get("vector_count", 0)
         post_vectors = post_summary.get("pinecone", {}).get("vector_count", 0)
-        pre_tables = pre_summary.get("mysql", {}).get("table_count", 0)
-        post_tables = post_summary.get("mysql", {}).get("table_count", 0)
+        pre_tables = pre_summary.get("postgresql", {}).get("table_count", 0)
+        post_tables = post_summary.get("postgresql", {}).get("table_count", 0)
         
         print(f"  Pinecone Vectors: {pre_vectors:,} → {post_vectors:,}")
-        print(f"  MySQL Tables: {pre_tables} → {post_tables}")
+        print(f"  PostgreSQL Tables: {pre_tables} → {post_tables}")
 
 
 def confirm_deletion() -> bool:
@@ -236,7 +236,7 @@ def confirm_deletion() -> bool:
     print(f"\n{Colors.BOLD}{Colors.RED}⚠️  WARNING: DESTRUCTIVE OPERATION{Colors.END}")
     print(f"{Colors.RED}This will permanently delete ALL data from:{Colors.END}")
     print(f"{Colors.RED}  • All vectors in your Pinecone index{Colors.END}")
-    print(f"{Colors.RED}  • All tables in your MySQL database{Colors.END}")
+    print(f"{Colors.RED}  • All tables in your PostgreSQL database{Colors.END}")
     print(f"{Colors.RED}  • This action CANNOT be undone!{Colors.END}")
     print()
     
@@ -247,7 +247,7 @@ def confirm_deletion() -> bool:
 async def main():
     """Main function."""
     parser = argparse.ArgumentParser(
-        description="Manage data in Pinecone and MySQL via FastAPI endpoints",
+        description="Manage data in Pinecone and PostgreSQL via FastAPI endpoints",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

@@ -6,7 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 # Database imports
-import pymysql
+import psycopg2
 from sqlalchemy import create_engine, text, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -47,7 +47,7 @@ class DataClearService:
             "success": True,
             "operations": {
                 "pinecone": {"success": False, "message": "", "details": {}},
-                "mysql": {"success": False, "message": "", "details": {}}
+                "postgresql": {"success": False, "message": "", "details": {}}
             },
             "summary": ""
         }
@@ -56,9 +56,9 @@ class DataClearService:
         pinecone_result = await self._clear_pinecone_data()
         results["operations"]["pinecone"] = pinecone_result
         
-        # Clear MySQL data
-        mysql_result = await self._clear_mysql_data()
-        results["operations"]["mysql"] = mysql_result
+        # Clear PostgreSQL data
+        postgresql_result = await self._clear_postgresql_data()
+        results["operations"]["postgresql"] = postgresql_result
 
         # Clear table schema file
         schema_result = await self._clear_table_schema()
@@ -67,21 +67,21 @@ class DataClearService:
         # Determine overall success
         overall_success = (
             results["operations"]["pinecone"]["success"] and 
-            results["operations"]["mysql"]["success"] and
+            results["operations"]["postgresql"]["success"] and
             results["operations"]["table_schema"]["success"]
         )
         results["success"] = overall_success
         
         # Create summary
         if overall_success:
-            results["summary"] = "All data successfully cleared from both Pinecone and MySQL"
+            results["summary"] = "All data successfully cleared from both Pinecone and PostgreSQL"
             logger.info("Data clearing operation completed successfully")
         else:
             failed_ops = []
             if not results["operations"]["pinecone"]["success"]:
                 failed_ops.append("Pinecone")
-            if not results["operations"]["mysql"]["success"]:
-                failed_ops.append("MySQL")
+            if not results["operations"]["postgresql"]["success"]:
+                failed_ops.append("PostgreSQL")
             if not results["operations"]["table_schema"]["success"]:
                 failed_ops.append("Table Schema")
             results["summary"] = f"Data clearing failed for: {', '.join(failed_ops)}"
@@ -187,9 +187,9 @@ class DataClearService:
         
         return result
     
-    async def _clear_mysql_data(self) -> Dict[str, Any]:
-        """Clear all tables from MySQL database."""
-        logger.info("Starting MySQL data clearing")
+    async def _clear_postgresql_data(self) -> Dict[str, Any]:
+        """Clear all tables from PostgreSQL database."""
+        logger.info("Starting PostgreSQL data clearing")
         
         result = {
             "success": False,
@@ -219,29 +219,20 @@ class DataClearService:
             
             # Get all table names
             with engine.connect() as connection:
-                # Disable foreign key checks temporarily
-                connection.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-                
                 # Get all table names
                 tables_query = text("""
-                    SELECT table_name 
-                    FROM information_schema.tables 
-                    WHERE table_schema = :db_name
-                    AND table_type = 'BASE TABLE'
+                    SELECT tablename as table_name
+                    FROM pg_tables 
+                    WHERE schemaname = 'public'
                 """)
-                
-                tables_result = connection.execute(
-                    tables_query, 
-                    {"db_name": self.config.DATABASE_NAME}
-                )
+
+                tables_result = connection.execute(tables_query)
                 table_names = [row[0] for row in tables_result.fetchall()]
-                
+
                 if not table_names:
                     result["success"] = True
                     result["message"] = "No tables found in database - nothing to clear"
-                    logger.info("No tables found in MySQL database")
-                    # Re-enable foreign key checks
-                    connection.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+                    logger.info("No tables found in PostgreSQL database")
                     connection.commit()
                     return result
                 
@@ -253,16 +244,13 @@ class DataClearService:
                 
                 for table_name in table_names:
                     try:
-                        drop_query = text(f"DROP TABLE IF EXISTS `{table_name}`")
+                        drop_query = text(f"DROP TABLE IF EXISTS \"{table_name}\" CASCADE")
                         connection.execute(drop_query)
                         dropped_tables.append(table_name)
                         logger.info(f"Successfully dropped table: {table_name}")
                     except Exception as e:
                         failed_tables.append({"table": table_name, "error": str(e)})
                         logger.error(f"Failed to drop table {table_name}: {e}")
-                
-                # Re-enable foreign key checks
-                connection.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
                 connection.commit()
                 
                 # Update results
@@ -278,13 +266,13 @@ class DataClearService:
                     logger.info(f"Successfully dropped all {len(dropped_tables)} tables")
         
         except SQLAlchemyError as e:
-            error_msg = f"Database error while clearing MySQL data: {str(e)}"
+            error_msg = f"Database error while clearing PostgreSQL data: {str(e)}"
             result["message"] = error_msg
-            logger.error(f"MySQL clearing failed with database error: {e}", exc_info=True)
+            logger.error(f"PostgreSQL clearing failed with database error: {e}", exc_info=True)
         except Exception as e:
-            error_msg = f"Error clearing MySQL data: {str(e)}"
+            error_msg = f"Error clearing PostgreSQL data: {str(e)}"
             result["message"] = error_msg
-            logger.error(f"MySQL clearing failed: {e}", exc_info=True)
+            logger.error(f"PostgreSQL clearing failed: {e}", exc_info=True)
         
         return result
     
@@ -357,7 +345,7 @@ class DataClearService:
         
         summary = {
             "pinecone": {"available": False, "vector_count": 0, "index_exists": False},
-            "mysql": {"available": False, "table_count": 0, "tables": []},
+            "postgresql": {"available": False, "table_count": 0, "tables": []},
             "table_schema": {"available": False, "schema_count": 0, "file_exists": False}
         }
         
@@ -378,31 +366,27 @@ class DataClearService:
         except Exception as e:
             logger.error(f"Error getting Pinecone summary: {e}")
         
-        # Get MySQL summary
+        # Get PostgreSQL summary
         try:
             self.config.validate_database_config()
             engine = create_engine(self.config.database_url)
             
             with engine.connect() as connection:
                 tables_query = text("""
-                    SELECT table_name 
-                    FROM information_schema.tables 
-                    WHERE table_schema = :db_name
-                    AND table_type = 'BASE TABLE'
+                    SELECT tablename as table_name
+                    FROM pg_tables 
+                    WHERE schemaname = 'public'
                 """)
                 
-                tables_result = connection.execute(
-                    tables_query, 
-                    {"db_name": self.config.DATABASE_NAME}
-                )
+                tables_result = connection.execute(tables_query)
                 tables = [row[0] for row in tables_result.fetchall()]
                 
-                summary["mysql"]["available"] = True
-                summary["mysql"]["table_count"] = len(tables)
-                summary["mysql"]["tables"] = tables
+                summary["postgresql"]["available"] = True
+                summary["postgresql"]["table_count"] = len(tables)
+                summary["postgresql"]["tables"] = tables
                 
         except Exception as e:
-            logger.error(f"Error getting MySQL summary: {e}")
+            logger.error(f"Error getting PostgreSQL summary: {e}")
         # Get table schema summary
         try:
             if self.table_schema_path.exists():
@@ -447,7 +431,7 @@ async def get_data_summary() -> Dict[str, Any]:
 # CLI functionality
 async def main():
     """Main function for CLI usage."""
-    print("🚨 WARNING: This will permanently delete ALL data from Pinecone and MySQL!")
+    print("🚨 WARNING: This will permanently delete ALL data from Pinecone and PostgreSQL!")
     print("This action cannot be undone.")
     print()
     
@@ -464,11 +448,11 @@ async def main():
     else:
         print("  - Not available/configured")
     
-    print(f"MySQL Database ({config.DATABASE_NAME}):")
-    if summary["mysql"]["available"]:
-        print(f"  - Tables: {summary['mysql']['table_count']}")
-        if summary["mysql"]["tables"]:
-            for table in summary["mysql"]["tables"]:
+    print(f"PostgreSQL Database ({config.DATABASE_NAME}):")
+    if summary["postgresql"]["available"]:
+        print(f"  - Tables: {summary['postgresql']['table_count']}")
+        if summary["postgresql"]["tables"]:
+            for table in summary["postgresql"]["tables"]:
                 print(f"    • {table}")
     else:
         print("  - Not available/configured")

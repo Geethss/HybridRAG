@@ -184,7 +184,7 @@ async def answer_question(request: QueryRequest, fastapi_request: Request):
 @router.post("/uploadpdf", response_model=UploadResponse)
 async def upload_pdf(file: UploadFile = File(...), fastapi_request: Request = None):
     """
-    Upload and process a PDF file, storing text in Pinecone and tables in MySQL.
+    Upload and process a PDF file, storing text in Pinecone and tables in PostgreSQL.
     """
     try:
         logger.info("PDF upload endpoint called")
@@ -212,7 +212,7 @@ async def upload_pdf(file: UploadFile = File(...), fastapi_request: Request = No
 @router.post("/clearalldata", response_model=ClearDataResponse)
 async def clear_all_data_endpoint(fastapi_request: Request):
     """
-    Clear all data from both Pinecone index and MySQL database.
+    Clear all data from both Pinecone index and PostgreSQL database.
     
     ⚠️  WARNING: This permanently deletes ALL data and cannot be undone!
     """
@@ -222,7 +222,7 @@ async def clear_all_data_endpoint(fastapi_request: Request):
         # Get data summary before clearing
         logger.info("Getting data summary before clearing")
         pre_summary = await clear_data_service.get_data_summary()
-        logger.info(f"Pre-clear summary: Pinecone vectors={pre_summary['pinecone']['vector_count']}, MySQL tables={pre_summary['mysql']['table_count']}")
+        logger.info(f"Pre-clear summary: Pinecone vectors={pre_summary['pinecone']['vector_count']}, PostgreSQL tables={pre_summary['postgresql']['table_count']}")
         
         # Perform the clearing operation
         result = await clear_data_service.clear_all_data()
@@ -230,7 +230,7 @@ async def clear_all_data_endpoint(fastapi_request: Request):
         # Get data summary after clearing
         logger.info("Getting data summary after clearing")
         post_summary = await clear_data_service.get_data_summary()
-        logger.info(f"Post-clear summary: Pinecone vectors={post_summary['pinecone']['vector_count']}, MySQL tables={post_summary['mysql']['table_count']}")
+        logger.info(f"Post-clear summary: Pinecone vectors={post_summary['pinecone']['vector_count']}, PostgreSQL tables={post_summary['postgresql']['table_count']}")
         
         # Add summaries to result
         result["pre_clear_summary"] = pre_summary
@@ -253,7 +253,7 @@ async def clear_all_data_endpoint(fastapi_request: Request):
                 "summary": f"Internal server error: {str(e)}",
                 "operations": {
                     "pinecone": {"success": False, "message": f"Error: {str(e)}", "details": {}},
-                    "mysql": {"success": False, "message": f"Error: {str(e)}", "details": {}}
+                    "postgresql": {"success": False, "message": f"Error: {str(e)}", "details": {}}
                 }
             }
         )
@@ -262,7 +262,7 @@ async def clear_all_data_endpoint(fastapi_request: Request):
 @router.get("/datasummary")
 async def get_data_summary_endpoint():
     """
-    Get a summary of current data in both Pinecone and MySQL.
+    Get a summary of current data in both Pinecone and PostgreSQL.
     Useful for checking what data exists before clearing.
     """
     try:
@@ -278,7 +278,7 @@ async def get_data_summary_endpoint():
             "timestamp": "2025-06-27",  # You might want to use actual timestamp
             "totals": {
                 "pinecone_vectors": summary["pinecone"]["vector_count"] if summary["pinecone"]["available"] else 0,
-                "mysql_tables": summary["mysql"]["table_count"] if summary["mysql"]["available"] else 0
+                "postgresql_tables": summary["postgresql"]["table_count"] if summary["postgresql"]["available"] else 0
             }
         }
         

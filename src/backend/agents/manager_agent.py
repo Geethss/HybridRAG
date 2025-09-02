@@ -1,6 +1,5 @@
 import logging
 import json
-import mysql.connector
 from typing import Dict, Any, List, Optional
 from langgraph.graph import StateGraph, END
 from langchain_google_genai import ChatGoogleGenerativeAI

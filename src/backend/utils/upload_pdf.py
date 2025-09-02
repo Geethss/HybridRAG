@@ -33,7 +33,7 @@ async def process_pdf_upload(file: UploadFile) -> dict:
     """
     Enhanced PDF processing with Gemini-powered schema inference.
     
-    Process uploaded PDF file: extract content, store tables in MySQL with 
+    Process uploaded PDF file: extract content, store tables in PostgreSQL with 
     intelligent schema inference, and store text embeddings in Pinecone.
     
     Returns:
@@ -145,7 +145,7 @@ async def process_pdf_upload(file: UploadFile) -> dict:
             print(f"✓ File: {filename}")
             print(f"✓ PDF UUID: {pdf_uuid}")
             print(f"✓ Text chunks stored in Pinecone: {text_chunks_stored}")
-            print(f"✓ Tables stored in MySQL: {tables_stored}")
+            print(f"✓ Tables stored in PostgreSQL: {tables_stored}")
             print(f"✓ Schemas saved to src/backend/utils/table_schema.json: {processing_result.get('schemas_saved', 0)}")
             for table in table_summary:
                 print(f"  - {table['name']}: {table['rows_stored']} rows")

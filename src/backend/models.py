@@ -108,7 +108,7 @@ class IndexResponse(BaseModel):
 class DataSummary(BaseModel):
     """Model for data summary information."""
     pinecone: Dict[str, Any]
-    mysql: Dict[str, Any]
+    postgresql: Dict[str, Any]
 
 
 class OperationDetails(BaseModel):

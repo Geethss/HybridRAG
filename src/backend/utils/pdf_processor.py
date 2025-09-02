@@ -61,8 +61,8 @@ class PDFProcessor:
             self.schemas = self._load_schemas()
             
             with self.engine.connect() as conn:
-                logger.info("Successfully connected to MySQL RDS and Gemini")
-                print("Successfully connected to MySQL RDS and Gemini")
+                logger.info("Successfully connected to PostgreSQL and Gemini")
+                print("Successfully connected to PostgreSQL and Gemini")
         except SQLAlchemyError as e:
             logger.error(f"Database connection failed: {str(e)}")
             print(f"Error: Database connection failed: {str(e)}")
@@ -76,12 +76,12 @@ class PDFProcessor:
 
     def _sanitize_column_name(self, column_name: str) -> str:
         """
-        Sanitize column names to follow MySQL identifier naming conventions.
+        Sanitize column names to follow PostgreSQL identifier naming conventions.
         
         Rules:
         - Must start with letter or underscore
         - Can contain letters, digits, underscores
-        - Max 64 characters
+        - Max 63 characters
         - Reserved words are handled by quoting
         """
         import re
@@ -109,22 +109,24 @@ class PDFProcessor:
         if not cleaned:
             cleaned = "unnamed_column"
         
-        # Truncate to 64 characters (MySQL limit)
-        if len(cleaned) > 64:
-            cleaned = cleaned[:60] + '_trunc'
+        # Truncate to 63 characters (PostgreSQL limit)
+        if len(cleaned) > 63:
+            cleaned = cleaned[:59] + '_trunc'
         
-        # Handle MySQL reserved words by adding suffix
-        mysql_reserved = {
+        # Handle PostgreSQL reserved words by adding suffix
+        postgresql_reserved = {
             'order', 'group', 'select', 'from', 'where', 'insert', 'update', 
             'delete', 'create', 'drop', 'alter', 'index', 'table', 'database',
             'key', 'primary', 'foreign', 'unique', 'null', 'not', 'and', 'or',
             'in', 'exists', 'between', 'like', 'is', 'as', 'on', 'join', 'inner',
             'outer', 'left', 'right', 'union', 'distinct', 'count', 'sum', 'avg',
-            'min', 'max', 'having', 'case', 'when', 'then', 'else', 'end'
+            'min', 'max', 'having', 'case', 'when', 'then', 'else', 'end', 'user'
         }
-        
-        if cleaned.lower() in mysql_reserved:
+
+        if cleaned.lower() in postgresql_reserved:
             cleaned += '_col'
+
+        
         
         return cleaned
 

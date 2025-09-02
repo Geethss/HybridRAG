@@ -33,6 +33,11 @@ class Config:
         self.DATABASE_HOST = os.getenv("DATABASE_HOST")
         self.DATABASE_PORT = os.getenv("DATABASE_PORT", "3306")
         self.DATABASE_NAME = os.getenv("DATABASE_NAME")
+
+        # Supabase configuration
+        self.SUPABASE_URL = os.getenv("SUPABASE_URL")
+        self.SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+        self.SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
         
         # Pinecone configuration (updated to match your template)
         self.PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
@@ -87,9 +92,8 @@ class Config:
         """Get database URL, validating config first."""
         self.validate_database_config()
         return (
-            f"mysql+pymysql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}"
+            f"postgresql+psycopg2://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}"
             f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
-            f"?charset=utf8mb4"
         )
 
 
