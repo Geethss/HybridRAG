@@ -86,8 +86,8 @@ async def process_pdf_upload(file: UploadFile) -> dict:
         print(f"Processing uploaded file: {filename}")
 
         # Validate required configurations
-        config.validate_pinecone_config()
-        config.validate_gemini_config()
+        # config.validate_pinecone_config()
+        # config.validate_gemini_config()
 
         # Initialize enhanced PDF processor with Gemini integration
         pdf_processor = PDFProcessor(
