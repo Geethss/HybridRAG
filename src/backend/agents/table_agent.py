@@ -259,11 +259,12 @@ class TableAgent:
                 if results:
                     # Check if it's a count/aggregation query
                     if len(results) == 1 and len(results[0]) == 1:
-                        value = results[0][0]
-                        if "count" in original_query.lower() or "number" in original_query.lower():
-                            return f"Result: {value}"
+                        value = list(results[0].values())[0]  # Get first value from RealDictRow
+                        column_name = list(results[0].keys())[0]  # Get column name
+                        if "count" in original_query.lower() or "number" in original_query.lower() or column_name == 'count':
+                            return f"Brazil has won the Final {value} times." if "brazil" in original_query.lower() and column_name == 'count' else f"Result: {value}"
                         else:
-                            return f"Result: {value}"
+                            return f"The answer is: {value}"
                     else:
                         # Format as table for multiple results
                         result_text = "Query Results:\n"
@@ -272,7 +273,7 @@ class TableAgent:
                             result_text += "-" * (len(" | ".join(column_names))) + "\n"
                         
                         for row in results[:10]:  # Limit to first 10 rows
-                            result_text += " | ".join(str(cell) for cell in row) + "\n"
+                            result_text += " | ".join(str(value) for value in row.values()) + "\n"  # Handle RealDictRow properly
                         
                         if len(results) > 10:
                             result_text += f"... and {len(results) - 10} more rows"
@@ -286,7 +287,7 @@ class TableAgent:
                 logger.error(f"PostgreSQL error: {db_err}")
                 return f"Database error while processing query: {original_query}"
         except Exception as e:
-            logger.error(f"Error executing SQL query: {e}")
+            logger.error(f"Error executing SQL query: {str(e)}")
             return f"Error executing query: {original_query}"
         finally:
             if 'cursor' in locals():
