@@ -97,5 +97,39 @@
     "created_at": "2025-09-03T11:17:24.912253",
     "status": "complete",
     "rows_stored": 100
+  },
+  "pdf_c20081b6_world_cup_match_results": {
+    "schema": {
+      "match_id": "integer",
+      "year": "integer",
+      "round": "string",
+      "home_team": "string",
+      "away_team": "string",
+      "home_score": "integer",
+      "away_score": "integer",
+      "winner": "string"
+    },
+    "description": "This table, `pdf_c20081b6_world_cup_match_results`, stores data on World Cup match results.  It contains information for each match, including the `match_id`, `year`, `round` of the tournament, the `home_team` and `away_team`, their respective `home_score` and `away_score`, and the `winner` of the match.  All scores are integer values.  The table is suitable for queries retrieving match details based on year, round, team participation, or scores.  The data spans multiple World Cup years, as evidenced by the sample data ranging from 1930 to 1978.  The surrounding text suggests this table contains historical World Cup match results.",
+    "pdf_uuid": "c20081b6",
+    "created_at": "2025-09-03T11:59:24.918314",
+    "status": "complete",
+    "rows_stored": 100
+  },
+  "pdf_cec71391_world_cup_match_results": {
+    "schema": {
+      "match_ID": "integer",
+      "year": "integer",
+      "round": "string",
+      "home_team": "string",
+      "away_team": "string",
+      "home_score": "integer",
+      "away_score": "integer",
+      "winner": "string"
+    },
+    "description": "This table, `pdf_cec71391_world_cup_match_results`, stores data on World Cup match results.  It contains information for approximately 100 matches.  Each row represents a single match with the following columns:\n\n* **match_ID:** Unique identifier for each match (INT).\n* **year:** Year the match was played (INT).\n* **round:** Stage of the tournament (e.g., \"Group 1\", \"Semi-final\") (VARCHAR).\n* **home_team:** Name of the home team (VARCHAR).\n* **away_team:** Name of the away team (VARCHAR).\n* **home_score:** Score of the home team (INT).\n* **away_score:** Score of the away team (INT).\n* **winner:** Name of the winning team (\"Draw\" if a draw) (VARCHAR).\n\nUse this table to answer questions about World Cup match results, such as finding matches played in a specific year, finding matches between specific teams, or determining the winner of a particular match.  The surrounding text often provides context indicating relevant match details that can be used to formulate queries against this table.",
+    "pdf_uuid": "cec71391",
+    "created_at": "2025-09-03T12:13:20.739747",
+    "status": "complete",
+    "rows_stored": 100
   }
 }

@@ -244,8 +244,8 @@ class TableAgent:
                     port=os.getenv('DATABASE_PORT', 5432)
                 )
                 cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                logger.debug(f"Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
-                print(f"[DEBUG] Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
+                logger.info(f"Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
+                logger.info(f"host={os.getenv('DATABASE_HOST')}, user={os.getenv('DATABASE_USER')}, port={os.getenv('DATABASE_PORT', 5432)}")
 
                 # Execute the query
                 cursor.execute(sql_query)
@@ -253,6 +253,7 @@ class TableAgent:
                 column_names = [desc[0] for desc in cursor.description] if cursor.description else []
                 logger.debug(f"Query executed successfully. Results: {results}")
                 print(f"[DEBUG] Query execution results: {results}")
+                logger.info(f"results type: {type(results)}, number of rows: {len(results)}")
 
                 # Format the results based on query type
                 if results:
