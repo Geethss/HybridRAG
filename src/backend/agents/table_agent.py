@@ -235,55 +235,55 @@ class TableAgent:
         try:
             # Database URL (prefer environment variable)
             try:
-    # Use environment variables for database connection
-    conn = psycopg2.connect(
-        host=os.getenv('DATABASE_HOST'),
-        user=os.getenv('DATABASE_USER'),
-        password=os.getenv('DATABASE_PASSWORD'),
-        database=os.getenv('DATABASE_NAME'),
-        port=os.getenv('DATABASE_PORT', 5432)
-    )
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    logger.debug(f"Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
-    print(f"[DEBUG] Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
+                # Use environment variables for database connection
+                conn = psycopg2.connect(
+                    host=os.getenv('DATABASE_HOST'),
+                    user=os.getenv('DATABASE_USER'),
+                    password=os.getenv('DATABASE_PASSWORD'),
+                    database=os.getenv('DATABASE_NAME'),
+                    port=os.getenv('DATABASE_PORT', 5432)
+                )
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                logger.debug(f"Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
+                print(f"[DEBUG] Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
 
-            # Execute the query
-            cursor.execute(sql_query)
-            results = cursor.fetchall()
-            column_names = [desc[0] for desc in cursor.description] if cursor.description else []
-            logger.debug(f"Query executed successfully. Results: {results}")
-            print(f"[DEBUG] Query execution results: {results}")
+                # Execute the query
+                cursor.execute(sql_query)
+                results = cursor.fetchall()
+                column_names = [desc[0] for desc in cursor.description] if cursor.description else []
+                logger.debug(f"Query executed successfully. Results: {results}")
+                print(f"[DEBUG] Query execution results: {results}")
 
-            # Format the results based on query type
-            if results:
-                # Check if it's a count/aggregation query
-                if len(results) == 1 and len(results[0]) == 1:
-                    value = results[0][0]
-                    if "count" in original_query.lower() or "number" in original_query.lower():
-                        return f"Result: {value}"
+                # Format the results based on query type
+                if results:
+                    # Check if it's a count/aggregation query
+                    if len(results) == 1 and len(results[0]) == 1:
+                        value = results[0][0]
+                        if "count" in original_query.lower() or "number" in original_query.lower():
+                            return f"Result: {value}"
+                        else:
+                            return f"Result: {value}"
                     else:
-                        return f"Result: {value}"
+                        # Format as table for multiple results
+                        result_text = "Query Results:\n"
+                        if column_names:
+                            result_text += " | ".join(column_names) + "\n"
+                            result_text += "-" * (len(" | ".join(column_names))) + "\n"
+                        
+                        for row in results[:10]:  # Limit to first 10 rows
+                            result_text += " | ".join(str(cell) for cell in row) + "\n"
+                        
+                        if len(results) > 10:
+                            result_text += f"... and {len(results) - 10} more rows"
+                        
+                        return result_text
                 else:
-                    # Format as table for multiple results
-                    result_text = "Query Results:\n"
-                    if column_names:
-                        result_text += " | ".join(column_names) + "\n"
-                        result_text += "-" * (len(" | ".join(column_names))) + "\n"
-                    
-                    for row in results[:10]:  # Limit to first 10 rows
-                        result_text += " | ".join(str(cell) for cell in row) + "\n"
-                    
-                    if len(results) > 10:
-                        result_text += f"... and {len(results) - 10} more rows"
-                    
-                    return result_text
-            else:
-                logger.warning(f"No results returned for query: {sql_query}")
-                return f"No results found for query: {original_query}"
+                    logger.warning(f"No results returned for query: {sql_query}")
+                    return f"No results found for query: {original_query}"
 
-        except psycopg2.Error as db_err:
-            logger.error(f"PostgreSQL error: {db_err}")
-            return f"Database error while processing query: {original_query}"
+            except psycopg2.Error as db_err:
+                logger.error(f"PostgreSQL error: {db_err}")
+                return f"Database error while processing query: {original_query}"
         except Exception as e:
             logger.error(f"Error executing SQL query: {e}")
             return f"Error executing query: {original_query}"

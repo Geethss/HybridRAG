@@ -28,9 +28,9 @@ python-multipart
 
 # Database
 sqlalchemy
-mysql.connector
-pymysql
-cryptography
+psycopg2-binary
+asyncpg
+supabase
 
 # PDF Processing
 pdfplumber
