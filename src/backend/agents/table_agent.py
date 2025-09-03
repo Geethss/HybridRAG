@@ -1,6 +1,7 @@
 import logging
 import json
-import mysql.connector
+import psycopg2
+import psycopg2.extras
 from typing import Dict, Any, List
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -156,7 +157,7 @@ class TableAgent:
 
     def _generate_sql_query(self, query: str, schema: dict = None) -> str:
         """
-        Generate a MySQL SELECT query using the LLM
+        Generate a PostgreSQL SELECT query using the LLM
 
         Args:
             query (str): User query
@@ -175,13 +176,13 @@ class TableAgent:
         schema_summary = [(name, info.get('pdf_uuid', 'No UUID')) for name, info in schema.items()]
         logger.info(f"Processing SQL generation with tables: {schema_summary}")
         system_prompt = """
-        You are an expert SQL query generator. Based on the provided database schema and user query, generate a valid SQL SELECT query for MySQL.
+        You are an expert SQL query generator. Based on the provided database schema and user query, generate a valid SQL SELECT query for PostgreSQL.
         - Use only the tables and columns defined in the schema.
         - Table names may contain spaces or special characters (e.g., "pdf_b55f83da_table_1_25").
-        - ALWAYS use backticks around table and column names to handle special characters.
+        - ALWAYS use double quotes around table and column names to handle special characters.
         - When filtering by PDF UUID, only use tables that match the current document context.
-        - Map schema data types to MySQL types: "String" to VARCHAR, "Integer" to INT, "currency" to DECIMAL/FLOAT.
-        - Ensure the query is syntactically correct and optimized for MySQL.
+        - Map schema data types to PostgreSQL types: "String" to VARCHAR, "Integer" to INT, "currency" to DECIMAL/FLOAT.
+        - Ensure the query is syntactically correct and optimized for PostgreSQL.
         - Do not include INSERT, UPDATE, or DELETE statements.
         - If the query cannot be answered with the schema, return "Cannot generate SQL for this query."
         - Return only the SQL query, without explanations or additional text.
@@ -222,7 +223,7 @@ class TableAgent:
 
     def _execute_sql_query(self, sql_query: str, original_query: str) -> str:
         """
-        Execute the SQL query on the MySQL database
+        Execute the SQL query on the PostgreSQL database
 
         Args:
             sql_query (str): SQL query to execute
@@ -233,29 +234,18 @@ class TableAgent:
         """
         try:
             # Database URL (prefer environment variable)
-            db_url = os.getenv(
-                'database_url',
-                'mysql+pymysql://admin:AlphaBeta1212@mydb.ch44qeeiq2ju.ap-south-1.rds.amazonaws.com:3306/My_database?charset=utf8mb4'
-            )
-
-            # Parse the database URL
-            parsed_url = urlparse(db_url)
-            query_params = parse_qs(parsed_url.query)
-            charset = query_params.get('charset', ['utf8mb4'])[0]
-            database = parsed_url.path.lstrip('/')
-
-            # Connect to MySQL
-            conn = mysql.connector.connect(
-                host=parsed_url.hostname,
-                user=parsed_url.username,
-                password=parsed_url.password,
-                database=database,
-                port=parsed_url.port or 3306,
-                charset=charset
-            )
-            cursor = conn.cursor()
-            logger.debug(f"Connected to MySQL database: {database}")
-            print(f"[DEBUG] Connected to MySQL database: {database}")
+            try:
+    # Use environment variables for database connection
+    conn = psycopg2.connect(
+        host=os.getenv('DATABASE_HOST'),
+        user=os.getenv('DATABASE_USER'),
+        password=os.getenv('DATABASE_PASSWORD'),
+        database=os.getenv('DATABASE_NAME'),
+        port=os.getenv('DATABASE_PORT', 5432)
+    )
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    logger.debug(f"Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
+    print(f"[DEBUG] Connected to PostgreSQL database: {os.getenv('DATABASE_NAME')}")
 
             # Execute the query
             cursor.execute(sql_query)
@@ -291,8 +281,8 @@ class TableAgent:
                 logger.warning(f"No results returned for query: {sql_query}")
                 return f"No results found for query: {original_query}"
 
-        except mysql.connector.Error as db_err:
-            logger.error(f"MySQL error: {db_err}")
+        except psycopg2.Error as db_err:
+            logger.error(f"PostgreSQL error: {db_err}")
             return f"Database error while processing query: {original_query}"
         except Exception as e:
             logger.error(f"Error executing SQL query: {e}")
@@ -302,7 +292,7 @@ class TableAgent:
                 cursor.close()
             if 'conn' in locals():
                 conn.close()
-            logger.debug("MySQL connection closed")
+            logger.debug("PostgreSQL connection closed")
 
     def health_check(self) -> Dict[str, Any]:
         """
@@ -319,22 +309,12 @@ class TableAgent:
             schema_path_exists = os.path.exists(self.schema_path)
             
             # Test database connection
-            db_url = os.getenv(
-                'database_url',
-                'mysql+pymysql://admin:AlphaBeta1212@mydb.ch44qeeiq2ju.ap-south-1.rds.amazonaws.com:3306/My_database?charset=utf8mb4'
-            )
-            parsed_url = urlparse(db_url)
-            query_params = parse_qs(parsed_url.query)
-            charset = query_params.get('charset', ['utf8mb4'])[0]
-            database = parsed_url.path.lstrip('/')
-
-            conn = mysql.connector.connect(
-                host=parsed_url.hostname,
-                user=parsed_url.username,
-                password=parsed_url.password,
-                database=database,
-                port=parsed_url.port or 3306,
-                charset=charset
+            conn = psycopg2.connect(
+                host=os.getenv('DATABASE_HOST'),
+                user=os.getenv('DATABASE_USER'),
+                password=os.getenv('DATABASE_PASSWORD'),
+                database=os.getenv('DATABASE_NAME'),
+                port=os.getenv('DATABASE_PORT', 5432)
             )
             conn.close()
 

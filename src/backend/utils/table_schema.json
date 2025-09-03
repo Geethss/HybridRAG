@@ -1,1 +1,19 @@
-{}
+{
+  "pdf_40c67bba_world_cup_matches": {
+    "schema": {
+      "match_ID": "integer",
+      "year": "integer",
+      "round": "string",
+      "home_team": "string",
+      "away_team": "string",
+      "home_score": "integer",
+      "away_score": "integer",
+      "winner": "string"
+    },
+    "description": "This table, `pdf_40c67bba_world_cup_matches`, stores data on World Cup matches.  It contains information about each match, including the year, round, home and away teams, scores, and the winning team (or \"Draw\").  The table is suitable for queries retrieving match details based on year, round, team names, or scores.  The `match_ID` column serves as a unique identifier for each match.  The data spans multiple World Cups, as evidenced by the `year` column.",
+    "pdf_uuid": "40c67bba",
+    "created_at": "2025-09-03T08:20:57.484934",
+    "status": "complete",
+    "rows_stored": 100
+  }
+}

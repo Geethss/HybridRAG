@@ -6,7 +6,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 # Database imports
-import pymysql
+import psycopg2
 from sqlalchemy import create_engine, text, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 

@@ -269,6 +269,20 @@ class PDFProcessor:
 
 
 
+    def test_database_connection(self):
+        """Test if database connection works"""
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute("SELECT version();")
+                version = result.fetchone()[0]
+                print(f"✓ Connected to PostgreSQL: {version}")
+                logger.info(f"Database connection successful: {version}")
+                return True
+        except Exception as e:
+            print(f"✗ Database connection failed: {e}")
+            logger.error(f"Database connection failed: {e}")
+            return False
+
     def _query_gemini_for_schema(self, table_data: List[List[str]], context_dict: dict, pdf_uuid: str, table_index: int = 1) -> TableSchema:
         """Query Gemini for table schema only (description will be generated later with full data)."""
         # Prepare the table preview (top 3 rows)
@@ -807,7 +821,11 @@ Respond with valid JSON only:
             
             # Create SQLAlchemy table
             columns = self._convert_schema_to_sqlalchemy(schema_info)
-            table = Table(table_info.name, self.metadata, *columns)
+            table = Table(table_info.name, self.metadata, *columns, schema='public')
+
+            # Add debug logging
+            print(f"DEBUG: About to create table: {table_info.name}")
+            print(f"DEBUG: Columns: {[col.name for col in columns]}")
             self.metadata.create_all(self.engine)
             
             print(f"Created table with schema: {table_info.schema}")

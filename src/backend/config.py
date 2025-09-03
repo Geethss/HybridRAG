@@ -23,7 +23,7 @@ class Config:
         
         # Flask/FastAPI Configuration
         self.HOST = os.getenv("HOST", "0.0.0.0")  # Added missing HOST
-        self.PORT = int(os.getenv("PORT", 8000))
+        self.PORT = int(os.getenv("PORT", 8010))
         self.DEBUG = os.getenv("DEBUG", "False").lower() == "true"  # Added missing DEBUG
         self.ENDPOINT = os.getenv("ENDPOINT", f"http://localhost:{self.PORT}")
         
@@ -87,9 +87,9 @@ class Config:
         """Get database URL, validating config first."""
         self.validate_database_config()
         return (
-            f"mysql+pymysql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}"
+            f"postgresql+psycopg2://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}"
             f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
-            f"?charset=utf8mb4"
+            f"?sslmode=require"
         )
 
 
