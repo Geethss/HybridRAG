@@ -40,29 +40,50 @@ class PDFProcessor:
     
     def __init__(self, database_url: str = None, gemini_api_key: str = None):
         try:
+            # Add debug logging at the start
+            print(f"DEBUG PDFProcessor: Initializing with database_url: {bool(database_url)}")
+            print(f"DEBUG PDFProcessor: Initializing with gemini_api_key: {bool(gemini_api_key)}")
+            
             # Database setup
             if database_url is None:
                 from ..config import config
                 database_url = config.database_url
+                print(f"DEBUG PDFProcessor: Using config database_url")
                 
+            print(f"DEBUG PDFProcessor: Final database_url: {database_url[:50]}...")
             self.engine = create_engine(database_url)
             self.metadata = MetaData()
             
-            # Gemini setup
+            # Gemini setup with detailed debugging
             if gemini_api_key is None:
                 from ..config import config
                 gemini_api_key = config.GEMINI_API_KEY
+                print(f"DEBUG PDFProcessor: Using config GEMINI_API_KEY")
                 
+            print(f"DEBUG PDFProcessor: gemini_api_key type: {type(gemini_api_key)}")
+            print(f"DEBUG PDFProcessor: gemini_api_key length: {len(gemini_api_key) if gemini_api_key else 0}")
+            print(f"DEBUG PDFProcessor: gemini_api_key value: {gemini_api_key[:10]}..." if gemini_api_key else "None")
+            
+            # Check if the API key is valid before configuring
+            if not gemini_api_key or not gemini_api_key.strip():
+                raise ValueError("GEMINI_API_KEY is empty or None")
+                
+            print(f"DEBUG PDFProcessor: About to configure genai with API key...")
             genai.configure(api_key=gemini_api_key)
+            print(f"DEBUG PDFProcessor: genai.configure() successful")
+            
+            print(f"DEBUG PDFProcessor: About to create GenerativeModel...")
             self.model = genai.GenerativeModel('gemini-1.5-flash')
+            print(f"DEBUG PDFProcessor: GenerativeModel created successfully")
             
             # Schema storage
             self.schema_file = Path("src/backend/utils/table_schema.json")
             self.schemas = self._load_schemas()
             
             with self.engine.connect() as conn:
-                logger.info("Successfully connected to MySQL RDS and Gemini")
-                print("Successfully connected to MySQL RDS and Gemini")
+                logger.info("Successfully connected to PostgreSQL and Gemini")
+                print("Successfully connected to PostgreSQL and Gemini")
+                
         except SQLAlchemyError as e:
             logger.error(f"Database connection failed: {str(e)}")
             print(f"Error: Database connection failed: {str(e)}")
@@ -71,6 +92,9 @@ class PDFProcessor:
         except Exception as e:
             logger.error(f"Gemini configuration failed: {str(e)}")
             print(f"Error: Gemini configuration failed: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Full traceback: {traceback.format_exc()}")
             raise HTTPException(
                 status_code=500, detail=f"Gemini configuration error: {str(e)}")
 
