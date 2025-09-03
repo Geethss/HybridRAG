@@ -148,5 +148,22 @@
     "created_at": "2025-09-03T14:00:51.103954",
     "status": "complete",
     "rows_stored": 100
+  },
+  "pdf_39089c73_world_cup_match_results": {
+    "schema": {
+      "match_id": "integer",
+      "year": "integer",
+      "round": "string",
+      "home_team": "string",
+      "away_team": "string",
+      "home_score": "integer",
+      "away_score": "integer",
+      "winner": "string"
+    },
+    "description": "This table, `pdf_39089c73_world_cup_match_results`, stores results of World Cup matches.  It contains information for approximately 100 matches.  Each row represents a single match with details including:  match ID (`match_id`), year (`year`), round of the tournament (`round`), home and away teams (`home_team`, `away_team`), their respective scores (`home_score`, `away_score`), and the match winner (`winner`).  The data types are integers for IDs and scores, and text for team names, round, and winner.  Use this table to answer questions about specific matches, teams, scores, and winners from the World Cup.  The data spans multiple years, as indicated by the sample data.  The `winner` column can contain \"Draw\" if the match was a draw.",
+    "pdf_uuid": "39089c73",
+    "created_at": "2025-09-03T15:10:11.458863",
+    "status": "complete",
+    "rows_stored": 100
   }
 }
