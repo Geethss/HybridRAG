@@ -25,23 +25,10 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-# Global PDF variables (hardcoded)
-CURRENT_PDF_UUID = "39089c73"
-CURRENT_PDF_NAME = "The_FIFA_World_Cup__A_Historical_Journey-1_1.pdf"
-PDF_DISPLAY_NAME = "The_FIFA_World_Cup__A_Historical_Journey-1_1.pdf"
-
-# Backend URLs
-CHATBOT_BACKEND_URL = os.getenv('CHATBOT_BACKEND_URL')
-
 @dataclass
 class ChatResponse:
     """Data class for API chat response"""
     answer: str
-
-@dataclass
-class GenericRAGResponse:
-    """Data class for GenericRAG chat response"""
-    response: str
 
 class AppError(Exception):
     """Base exception class for application errors"""
@@ -100,7 +87,6 @@ class APIClient:
     
     def __init__(self):
         self.endpoint = self._validate_endpoint()
-        self.chatbot_backend_url = self._validate_chatbot_backend()
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json',
@@ -144,23 +130,6 @@ class APIClient:
         logger.info(f"API endpoint configured: {endpoint}")
         return endpoint.rstrip('/')
     
-    def _validate_chatbot_backend(self) -> str:
-        """Validate and return the chatbot backend URL"""
-        chatbot_url = CHATBOT_BACKEND_URL
-        
-        if not chatbot_url:
-            logger.warning("CHATBOT_BACKEND_URL environment variable not set")
-            return None
-        
-        # Validate URL format
-        if not chatbot_url.startswith(('http://', 'https://')):
-            logger.warning(f"Invalid chatbot backend URL format: {chatbot_url}")
-            return None
-        
-        logger.info(f"Chatbot backend URL configured: {chatbot_url}")
-        return chatbot_url.rstrip('/')
-
-
     def _test_connection(self):
         """Test basic connectivity to the API endpoint"""
         try:
@@ -296,63 +265,135 @@ class APIClient:
             )
             return None
     
-    def send_generic_rag_query(self, query: str) -> Optional[GenericRAGResponse]:
-        """Send query to GenericRAG backend"""
-        if not self.chatbot_backend_url:
-            logger.warning("GenericRAG backend not configured")
-            return None
-            
-        if not query or not query.strip():
-            return None
-        
+    def upload_pdf(self, pdf_file) -> dict:
+        """Upload PDF file to the server with enhanced error handling"""
         try:
-            url = f"{self.chatbot_backend_url}/chat"
-            payload = {"query": query.strip()}
+            # Validate file
+            if not pdf_file:
+                raise ValidationError(
+                    "No file provided",
+                    "NO_FILE"
+                )
             
-            logger.info(f"Sending GenericRAG query to {url}")
+            if not pdf_file.name.lower().endswith('.pdf'):
+                raise ValidationError(
+                    "File must be a PDF",
+                    "INVALID_FILE_TYPE",
+                    {"file_name": pdf_file.name}
+                )
             
-            response = self.session.post(
+            file_size = len(pdf_file.getvalue())
+            max_size = 2 * 1024 * 1024  # 2MB
+            if file_size > max_size:
+                raise ValidationError(
+                    f"File too large: {file_size / 1024 / 1024:.1f}MB (max: 2MB)",
+                    "FILE_TOO_LARGE",
+                    {"file_size": file_size, "max_size": max_size}
+                )
+            
+            logger.info(f"Uploading PDF: {pdf_file.name} ({file_size / 1024:.1f}KB)")
+            
+            url = f"{self.endpoint}/uploadpdf"
+            files = {'file': (pdf_file.name, pdf_file.getvalue(), 'application/pdf')}
+            
+            # Remove Content-Type header for file upload
+            headers = {k: v for k, v in self.session.headers.items() if k.lower() != 'content-type'}
+            
+            response = requests.post(
                 url,
-                json=payload,
-                timeout=30
+                files=files,
+                headers=headers,
+                timeout=1000
             )
+            logger.info(f"the whole result file {response}")
+            logger.info(f"Upload response status: {response.status_code}")
             
-            logger.info(f"GenericRAG response status: {response.status_code}")
-            
-            if response.status_code != 200:
-                logger.error(f"GenericRAG unexpected status code: {response.status_code}")
-                return None
+            if response.status_code == 404:
+                raise APIError(
+                    "Upload endpoint not found",
+                    "UPLOAD_ENDPOINT_NOT_FOUND",
+                    {"url": url}
+                )
+            elif response.status_code == 413:
+                raise APIError(
+                    "File too large for server",
+                    "FILE_TOO_LARGE_SERVER",
+                    {"file_size": file_size}
+                )
             
             response.raise_for_status()
             
             try:
                 data = response.json()
-            except json.JSONDecodeError as e:
-                logger.error("Invalid JSON response from GenericRAG")
-                return None
+            except json.JSONDecodeError:
+                raise APIError(
+                    "Invalid JSON response from upload endpoint",
+                    "UPLOAD_INVALID_JSON",
+                    {"response_text": response.text[:500]}
+                )
+
+            success = data.get('success', False)
+            logger.info(f"Upload result: {'success' if success else 'failed'}")
+
+            if success:
+                logger.info(f"pdf_uuid at upload pdf function: {data.get('pdf_uuid')}")
+                logger.info(f"data: {data}")
+                return {
+                    'success': True,
+                    'pdf_uuid': data.get('pdf_uuid'),
+                    'pdf_name': data.get('filename'),
+                    'filename': data.get('filename'),
+                    'display_name': data.get('display_name', f"{data.get('filename', 'Unknown')} ({data.get('pdf_uuid', 'No UUID')[:8]})")
+                }
+            else:
+                return {'success': False, 'error': data.get('message', 'Upload failed')}
             
-            if 'response' not in data:
-                logger.error("Missing 'response' field in GenericRAG response")
-                return None
-            
-            generic_response = GenericRAGResponse(
-                response=data.get('response', '')
+        except ValidationError as e:
+            ErrorHandler.log_error(
+                e,
+                "PDF Upload Validation",
+                e.message
             )
+            return {'success': False, 'error': e.message}
             
-            logger.info("GenericRAG query processed successfully")
-            return generic_response
+        except requests.exceptions.Timeout as e:
+            error = APIError(
+                "Upload timed out",
+                "UPLOAD_TIMEOUT",
+                {"timeout": 60, "file_name": pdf_file.name if pdf_file else "unknown"}
+            )
+            ErrorHandler.log_error(
+                error,
+                "PDF Upload Request",
+                "Upload took too long. Please try a smaller file."
+            )
+            return {'success': False, 'error': 'Upload timed out'}
             
-        except requests.exceptions.Timeout:
-            logger.error("GenericRAG request timed out")
-            return None
-            
-        except requests.exceptions.ConnectionError:
-            logger.error("Cannot connect to GenericRAG server")
-            return None
+        except requests.exceptions.ConnectionError as e:
+            error = APIError(
+                "Cannot connect to upload server",
+                "UPLOAD_CONNECTION_ERROR",
+                {"endpoint": self.endpoint}
+            )
+            ErrorHandler.log_error(
+                error,
+                "PDF Upload Request",
+                "Cannot connect to the server for upload."
+            )
+            return {'success': False, 'error': 'Connection failed'}
             
         except Exception as e:
-            logger.error(f"Unexpected error during GenericRAG query: {str(e)}")
-            return None
+            error = APIError(
+                f"Unexpected error during upload: {str(e)}",
+                "UPLOAD_UNEXPECTED_ERROR",
+                {"error_type": type(e).__name__}
+            )
+            ErrorHandler.log_error(
+                error,
+                "PDF Upload Request",
+                "An unexpected error occurred during upload."
+            )
+            return {'success': False, 'error': str(e)}
 
 class ChatUI:
     """Handles chat interface rendering and state management with error handling"""
@@ -366,10 +407,6 @@ class ChatUI:
         try:
             if "messages" not in st.session_state:
                 st.session_state.messages = []
-            if "hybrid_responses" not in st.session_state:
-                st.session_state.hybrid_responses = []
-            if "generic_responses" not in st.session_state:
-                st.session_state.generic_responses = []
             if "suggested_questions" not in st.session_state:
                 st.session_state.suggested_questions = []
             if "debug_mode" not in st.session_state:
@@ -377,11 +414,11 @@ class ChatUI:
             if "error_count" not in st.session_state:
                 st.session_state.error_count = 0
             if 'current_pdf_uuid' not in st.session_state:
-                st.session_state.current_pdf_uuid = CURRENT_PDF_UUID
+                st.session_state.current_pdf_uuid = None
             if 'current_pdf_name' not in st.session_state:
-                st.session_state.current_pdf_name = CURRENT_PDF_NAME
+                st.session_state.current_pdf_name = None
             if 'pdf_display_name' not in st.session_state:
-                st.session_state.pdf_display_name = PDF_DISPLAY_NAME
+                st.session_state.pdf_display_name = None
                 
             logger.info("Session state initialized successfully")
         except Exception as e:
@@ -394,39 +431,13 @@ class ChatUI:
     def display_chat_history(self):
         """Display all chat messages with error handling"""
         try:
-            assistant_response_count = 0
-            
             for idx, message in enumerate(st.session_state.messages):
-                if message["role"] == "user":
-                    with st.chat_message(message["role"]):
-                        st.write(message["content"])
-                elif message["role"] == "assistant":
-                    if message["content"] == "dual_response":
-                        # Display dual response layout
-                        col1, col2 = st.columns(2)
-                        
-                        with col1:
-                            st.markdown("### 🔄 GenericRAG")
-                            with st.chat_message("assistant"):
-                                if assistant_response_count < len(st.session_state.generic_responses):
-                                    st.write(st.session_state.generic_responses[assistant_response_count])
-                        
-                        with col2:
-                            st.markdown("### ⚡ HybridRAG")
-                            with st.chat_message("assistant"):
-                                if assistant_response_count < len(st.session_state.hybrid_responses):
-                                    st.write(st.session_state.hybrid_responses[assistant_response_count])
-                        
-                        assistant_response_count += 1
-                    else:
-                        # Display regular single response (for backward compatibility)
-                        with st.chat_message(message["role"]):
-                            st.write(message["content"])
-                            
-                            # Display enrollment prompt if applicable
-                            if message.get("show_enroll"):
-                                st.info("💡 Would you like to enroll for more information?")
-                                
+                with st.chat_message(message["role"]):
+                    st.write(message["content"])
+                    
+                    # Display enrollment prompt if applicable
+                    if message["role"] == "assistant" and message.get("show_enroll"):
+                        st.info("💡 Would you like to enroll for more information?")
         except Exception as e:
             ErrorHandler.log_error(
                 e,
@@ -448,29 +459,35 @@ class ChatUI:
                 "content": user_input.strip()
             })
             
-            # Get responses from both backends
-            with st.spinner("Getting responses from both architectures..."):
-                # Get HybridRAG response
-                hybrid_response = self.api_client.send_query(user_input.strip(), st.session_state.current_pdf_uuid)
+            # Get response from API
+            with st.spinner("Thinking..."):
+                response = self.api_client.send_query(user_input.strip(), st.session_state.current_pdf_uuid)
+            
+            if response:
+                # Add assistant response to chat
+                assistant_message = {
+                    "role": "assistant", 
+                    "content": response.answer
+                }
+                st.session_state.messages.append(assistant_message)
                 
-                # Get GenericRAG response
-                generic_response = self.api_client.send_generic_rag_query(user_input.strip())
-            
-            # Store responses
-            hybrid_answer = hybrid_response.answer if hybrid_response else "Error: Unable to get response from HybridRAG"
-            generic_answer = generic_response.response if generic_response else "Error: Unable to get response from GenericRAG"
-            
-            st.session_state.hybrid_responses.append(hybrid_answer)
-            st.session_state.generic_responses.append(generic_answer)
-            
-            # Add placeholder message (actual responses will be shown in dual layout)
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": "dual_response"  # Special marker for dual response display
-            })
-            
-            # Reset error count on successful response
-            st.session_state.error_count = 0
+                # Reset error count on successful response
+                st.session_state.error_count = 0
+                
+            else:
+                # Increment error count
+                st.session_state.error_count += 1
+                
+                # Add error message with helpful suggestions
+                error_message = "I'm sorry, I encountered an error while processing your request."
+                
+                if st.session_state.error_count >= 3:
+                    error_message += " Multiple errors detected. Please check your connection and try again later."
+                
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": error_message
+                })
                 
         except Exception as e:
             ErrorHandler.log_error(
@@ -490,15 +507,6 @@ class ChatUI:
             else:
                 st.warning("⚠️ No PDF uploaded. Please upload a PDF first for document-specific queries.")
             
-            # Display architecture comparison header
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("### 🔄 GenericRAG Architecture")
-            with col2:
-                st.markdown("### ⚡ HybridRAG Architecture")
-            
-            st.markdown("---")
-            
             # Display chat history
             self.display_chat_history()
             
@@ -514,6 +522,94 @@ class ChatUI:
                 "Error rendering chat interface"
             )
 
+class PDFUploader:
+    """Handles PDF upload functionality with enhanced error handling"""
+    
+    def __init__(self, api_client: APIClient):
+        self.api_client = api_client
+    
+    def render_upload_interface(self):
+        """Render PDF upload interface in sidebar with comprehensive error handling"""
+        try:
+            st.sidebar.title("📄 Document Upload")
+            st.sidebar.markdown("Upload a PDF document to enhance the chatbot's knowledge.")
+            
+            uploaded_file = st.sidebar.file_uploader(
+                "Choose a PDF file",
+                type=['pdf'],
+                help="Upload a PDF document for the chatbot to analyze"
+            )
+            
+            if uploaded_file is not None:
+                # Display file info with validation
+                file_size = len(uploaded_file.getvalue())
+                file_size_mb = file_size / (1024 * 1024)
+                
+                # Check file size immediately and show clear feedback
+                if file_size_mb > 2.0:
+                    st.error(f"File size ({file_size_mb:.1f}MB) exceeds the 2MB limit. Please select a smaller file.")
+                    return
+                
+                st.sidebar.success(f"✅ File accepted: {uploaded_file.name}")
+                st.sidebar.info(f"📊 Size: {file_size_mb:.1f} MB (within 2MB limit)")
+                
+                # Warn if file is large but acceptable
+                if file_size_mb > 1:
+                    st.sidebar.warning("⚠️ Large file detected. Upload may take longer.")
+                
+                # Upload button
+                if st.sidebar.button("📤 Upload PDF", type="primary"):
+                    self._handle_pdf_upload(uploaded_file)
+                    
+        except Exception as e:
+            ErrorHandler.log_error(
+                e,
+                "PDF Upload Interface",
+                "Error in upload interface"
+            )
+
+
+
+
+
+
+
+
+    def _handle_pdf_upload(self, pdf_file):
+        """Handle PDF file upload with detailed error handling"""
+        try:
+            with st.spinner("Uploading PDF..."):
+                upload_result = self.api_client.upload_pdf(pdf_file)
+            
+            if upload_result.get('success'):
+                # Store PDF info in session state
+                logger.info(f"pdf uuid: {upload_result.get('pdf_uuid')}")
+                st.session_state.current_pdf_uuid = upload_result.get('pdf_uuid')
+                st.session_state.current_pdf_name = upload_result.get('filename')
+                st.session_state.pdf_display_name = upload_result.get('filename')
+                
+                st.sidebar.success("✅ PDF uploaded successfully!")
+                st.sidebar.info(f"📄 Active PDF: **{st.session_state.pdf_display_name}**")
+                st.sidebar.balloons()
+                logger.info(f"PDF uploaded successfully: {pdf_file.name}")
+            else:
+                st.sidebar.error(f"❌ Upload failed: {upload_result.get('error', 'Unknown error')}")
+                
+                # Provide helpful suggestions
+                with st.sidebar.expander("💡 Troubleshooting"):
+                    st.write("""
+                    - Check your internet connection
+                    - Ensure the file is a valid PDF
+                    - Try a smaller file if possible
+                    - Contact support if the problem persists
+                    """)
+                    
+        except Exception as e:
+            ErrorHandler.log_error(
+                e,
+                "PDF Upload Handler",
+                "Unexpected error during upload"
+            )
 
 class StreamlitApp:
     """Main application class with comprehensive error handling"""
@@ -524,6 +620,7 @@ class StreamlitApp:
         self.api_client = self._initialize_api_client()
         if self.api_client:
             self.chat_ui = ChatUI(self.api_client)
+            self.pdf_uploader = PDFUploader(self.api_client)
     
     def _configure_page(self):
         """Configure Streamlit page settings"""
@@ -582,6 +679,34 @@ class StreamlitApp:
     def run(self):
         """Run the main application with error boundaries"""
         try:
+            # Add this CSS block here - at the very start
+            st.markdown("""
+            <style>
+                .css-1d391kg {
+                    width: 350px;
+                }
+                section[data-testid="stSidebar"] {
+                    width: 350px !important;
+                }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # Render sidebar (PDF upload)
+            self.pdf_uploader.render_upload_interface()
+            
+            # Add sidebar info
+            with st.sidebar:
+                st.markdown("---")
+                st.markdown("### ℹ️ How to use")
+                st.markdown("""
+                1. **Upload a PDF** using the file uploader above
+                2. **Ask questions** about your document in the chat
+                3. **Click suggested questions** for quick interactions
+                4. **View enrollment prompts** when available
+                """)
+                
+                # Add connection status
+                self._display_connection_status()
             
             # Render main chat interface
             self.chat_ui.render_chat_interface()
@@ -594,6 +719,27 @@ class StreamlitApp:
             )
             st.error("A critical error occurred. Please refresh the page.")
     
+    def _display_connection_status(self):
+        """Display API connection status in sidebar"""
+        try:
+            with st.sidebar:
+                st.markdown("### 🔗 Connection Status")
+                
+                # Test connection button
+                if st.button("Test Connection", help="Test API connectivity"):
+                    with st.spinner("Testing connection..."):
+                        try:
+                            response = requests.head(self.api_client.endpoint, timeout=5)
+                            if response.status_code < 500:
+                                st.success("✅ Connected")
+                            else:
+                                st.warning(f"⚠️ Server issues (Status: {response.status_code})")
+                        except requests.exceptions.RequestException:
+                            st.error("❌ Connection failed")
+                        except Exception as e:
+                            st.error(f"❌ Test failed: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error displaying connection status: {str(e)}")
 
 def main():
     """Application entry point with top-level error handling"""
