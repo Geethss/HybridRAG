@@ -5,8 +5,8 @@
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/vijender883/EventBot
-cd EventBot
+git clone https://github.com/vijender883/HybridRAG
+cd HybridRAG
 ```
 
 ### 2. Create and Activate Virtual Environment

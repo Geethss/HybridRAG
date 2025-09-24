@@ -1,6 +1,6 @@
-# EventBot
+# HybridRAG
 
-A PDF document assistant with a FastAPI-based backend and a Streamlit-based frontend. The backend integrates with Google Gemini AI, Pinecone vector database, and MySQL. It allows users to upload PDF files (extracting text for vector search and tables for structured data querying) and ask questions about their content using natural language via the frontend interface. [Event bot](https://eventbot-table-rag-pinecone-db.streamlit.app/)
+A PDF document assistant with a FastAPI-based backend and a Streamlit-based frontend. The backend integrates with Google Gemini AI, Pinecone vector database, and MySQL. It allows users to upload PDF files (extracting text for vector search and tables for structured data querying) and ask questions about their content using natural language via the frontend interface. [Event bot](https://HybridRAG-table-rag-pinecone-db.streamlit.app/)
 
 ## 📖 Table of Contents
 
@@ -83,7 +83,7 @@ For deployment instructions, see the [Detailed Deployment Guide](docs/DEPLOYMENT
 
 ### Project Structure
 ```
-EventBot/
+HybridRAG/
 ├── .env                           # Local environment variables (gitignored)
 ├── .env.template                  # Template for .env file
 ├── .git/                          # Git version control directory

@@ -1,6 +1,6 @@
-# Contributing to EventBot
+# Contributing to HybridRAG
 
-We welcome contributions to EventBot! Whether it's a new feature, a bug fix, or an improvement to the documentation, your help is appreciated.
+We welcome contributions to HybridRAG! Whether it's a new feature, a bug fix, or an improvement to the documentation, your help is appreciated.
 
 Please take a moment to review this document to understand how to contribute effectively.
 
@@ -23,10 +23,10 @@ Please take a moment to review this document to understand how to contribute eff
 
 #### 1. Fork the Repository
 
-First, fork the `EventBot` repository to your GitHub account.
+First, fork the `HybridRAG` repository to your GitHub account.
 
 #### 2. Clone Your Fork
 
 ```bash
-git clone [https://github.com/YOUR_USERNAME/EventBot.git](https://github.com/YOUR_USERNAME/EventBot.git)
-cd EventBot
+git clone [https://github.com/YOUR_USERNAME/HybridRAG.git](https://github.com/YOUR_USERNAME/HybridRAG.git)
+cd HybridRAG

@@ -2,7 +2,7 @@
 
 ## 1. Introduction/Overview
 
-This document outlines the architecture of EventBot. The system comprises a FastAPI-based Python backend and a Streamlit-based Python frontend. The backend processes PDF documents, extracting text for vector storage (Pinecone) and tables for relational storage (MySQL). It answers user questions using an agentic system involving Retrieval Augmented Generation (RAG) with Google Gemini, table data querying, and intelligent response combination. The frontend provides a user interface for uploading PDFs and interacting with the chatbot.
+This document outlines the architecture of HybridRAG. The system comprises a FastAPI-based Python backend and a Streamlit-based Python frontend. The backend processes PDF documents, extracting text for vector storage (Pinecone) and tables for relational storage (MySQL). It answers user questions using an agentic system involving Retrieval Augmented Generation (RAG) with Google Gemini, table data querying, and intelligent response combination. The frontend provides a user interface for uploading PDFs and interacting with the chatbot.
 
 The architecture emphasizes modularity, separating concerns into distinct components for the user interface, backend request handling, core processing logic (including multiple agents and services), external service interactions, and configuration management. This approach aims for maintainability, scalability, and clarity.
 
@@ -11,7 +11,7 @@ The architecture emphasizes modularity, separating concerns into distinct compon
 The codebase is organized as follows:
 
 ```
-EventBot/
+HybridRAG/
 ├── app.py                         # Main FastAPI application entry point
 ├── clear_data_script.py           # Script for clearing data
 ├── docs/
@@ -138,40 +138,40 @@ EventBot/
 
 | File/Folder                                 | Location                                 | Functionality/Role                                                                                 |
 |---------------------------------------------|------------------------------------------|---------------------------------------------------------------------------------------------------|
-| app.py                                     | EventBot/app.py                          | FastAPI app entry point                                                                           |
-| clear_data_script.py                        | EventBot/clear_data_script.py            | Script to clear all data                                                                          |
-| docs/                                      | EventBot/docs/                           | Documentation                                                                                    |
-| logs/                                      | EventBot/logs/                           | Log files                                                                                        |
-| Makefile                                   | EventBot/Makefile                        | Common tasks                                                                                      |
-| README.md                                  | EventBot/README.md                       | Main documentation                                                                               |
-| requirements.txt                           | EventBot/requirements.txt                | Python dependencies                                                                              |
-| requirements-dev.txt                       | EventBot/requirements-dev.txt            | Dev dependencies                                                                                 |
-| scripts/start.sh                            | EventBot/scripts/start.sh                | Script to start backend                                                                           |
-| src/backend/__init__.py                    | EventBot/src/backend/__init__.py         | FastAPI app setup, service initialization                                                         |
-| src/backend/agents/base.py                 | EventBot/src/backend/agents/base.py      | Abstract base class for chatbot agents                                                            |
-| src/backend/agents/combiner_agent.py       | EventBot/src/backend/agents/combiner_agent.py | Combines Table and RAG responses using Gemini LLM                                           |
-| src/backend/agents/manager_agent.py        | EventBot/src/backend/agents/manager_agent.py | Orchestrates query processing (LangGraph)                                                   |
-| src/backend/agents/rag_agent.py            | EventBot/src/backend/agents/rag_agent.py | RAG-based chatbot logic (ChatbotAgent)                                                            |
-| src/backend/agents/table_agent.py          | EventBot/src/backend/agents/table_agent.py | Handles SQL generation/execution for table data                                             |
-| src/backend/config.py                      | EventBot/src/backend/config.py           | Loads and validates environment variables                                                         |
-| src/backend/models.py                      | EventBot/src/backend/models.py           | Pydantic models for API requests/responses                                                        |
-| src/backend/routes/__init__.py             | EventBot/src/backend/routes/__init__.py  | Router package initializer                                                                        |
-| src/backend/routes/chat.py                 | EventBot/src/backend/routes/chat.py      | API endpoints for chat, upload, health, etc.                                                     |
-| src/backend/services/__init__.py           | EventBot/src/backend/services/__init__.py| Service package initializer                                                                       |
-| src/backend/services/clear_data_service.py | EventBot/src/backend/services/clear_data_service.py | Service for clearing data from DB and Pinecone                                         |
-| src/backend/services/embedding_service.py  | EventBot/src/backend/services/embedding_service.py | Handles text embeddings and Pinecone storage                                             |
-| src/backend/services/orchestrator.py       | EventBot/src/backend/services/orchestrator.py | Orchestrates interactions with ManagerAgent                                               |
-| src/backend/test_manager_agent.py          | EventBot/src/backend/test_manager_agent.py| Example/test script for ManagerAgent                                                              |
-| src/backend/utils/__init__.py              | EventBot/src/backend/utils/__init__.py   | Utilities package initializer, embedding service init                                            |
-| src/backend/utils/helper.py                | EventBot/src/backend/utils/helper.py     | Miscellaneous helper functions, error handlers                                                   |
-| src/backend/utils/pdf_processor.py         | EventBot/src/backend/utils/pdf_processor.py | PDF parsing, MySQL table storage, schema saving                                            |
-| src/backend/utils/schema_manager.py        | EventBot/src/backend/utils/schema_manager.py | Manages table_schema.json, schema CRUD, docs, CLI                                         |
-| src/backend/utils/table_schema.json        | EventBot/src/backend/utils/table_schema.json | Stores inferred schemas for tables from PDFs                                              |
-| src/backend/utils/upload_pdf.py            | EventBot/src/backend/utils/upload_pdf.py | PDF upload handling, triggers extraction/storage, manages embedding storage                      |
-| src/frontend/streamlit_app.py              | EventBot/src/frontend/streamlit_app.py   | Main Streamlit application file (UI)                                                             |
-| tests/                                     | EventBot/tests/                          | Automated tests                                                                                   |
-| uploads/                                   | EventBot/uploads/                        | Uploaded files (if any)                                                                          |
-| venv/                                      | EventBot/venv/                           | Python virtual environment                                                                       |
+| app.py                                     | HybridRAG/app.py                          | FastAPI app entry point                                                                           |
+| clear_data_script.py                        | HybridRAG/clear_data_script.py            | Script to clear all data                                                                          |
+| docs/                                      | HybridRAG/docs/                           | Documentation                                                                                    |
+| logs/                                      | HybridRAG/logs/                           | Log files                                                                                        |
+| Makefile                                   | HybridRAG/Makefile                        | Common tasks                                                                                      |
+| README.md                                  | HybridRAG/README.md                       | Main documentation                                                                               |
+| requirements.txt                           | HybridRAG/requirements.txt                | Python dependencies                                                                              |
+| requirements-dev.txt                       | HybridRAG/requirements-dev.txt            | Dev dependencies                                                                                 |
+| scripts/start.sh                            | HybridRAG/scripts/start.sh                | Script to start backend                                                                           |
+| src/backend/__init__.py                    | HybridRAG/src/backend/__init__.py         | FastAPI app setup, service initialization                                                         |
+| src/backend/agents/base.py                 | HybridRAG/src/backend/agents/base.py      | Abstract base class for chatbot agents                                                            |
+| src/backend/agents/combiner_agent.py       | HybridRAG/src/backend/agents/combiner_agent.py | Combines Table and RAG responses using Gemini LLM                                           |
+| src/backend/agents/manager_agent.py        | HybridRAG/src/backend/agents/manager_agent.py | Orchestrates query processing (LangGraph)                                                   |
+| src/backend/agents/rag_agent.py            | HybridRAG/src/backend/agents/rag_agent.py | RAG-based chatbot logic (ChatbotAgent)                                                            |
+| src/backend/agents/table_agent.py          | HybridRAG/src/backend/agents/table_agent.py | Handles SQL generation/execution for table data                                             |
+| src/backend/config.py                      | HybridRAG/src/backend/config.py           | Loads and validates environment variables                                                         |
+| src/backend/models.py                      | HybridRAG/src/backend/models.py           | Pydantic models for API requests/responses                                                        |
+| src/backend/routes/__init__.py             | HybridRAG/src/backend/routes/__init__.py  | Router package initializer                                                                        |
+| src/backend/routes/chat.py                 | HybridRAG/src/backend/routes/chat.py      | API endpoints for chat, upload, health, etc.                                                     |
+| src/backend/services/__init__.py           | HybridRAG/src/backend/services/__init__.py| Service package initializer                                                                       |
+| src/backend/services/clear_data_service.py | HybridRAG/src/backend/services/clear_data_service.py | Service for clearing data from DB and Pinecone                                         |
+| src/backend/services/embedding_service.py  | HybridRAG/src/backend/services/embedding_service.py | Handles text embeddings and Pinecone storage                                             |
+| src/backend/services/orchestrator.py       | HybridRAG/src/backend/services/orchestrator.py | Orchestrates interactions with ManagerAgent                                               |
+| src/backend/test_manager_agent.py          | HybridRAG/src/backend/test_manager_agent.py| Example/test script for ManagerAgent                                                              |
+| src/backend/utils/__init__.py              | HybridRAG/src/backend/utils/__init__.py   | Utilities package initializer, embedding service init                                            |
+| src/backend/utils/helper.py                | HybridRAG/src/backend/utils/helper.py     | Miscellaneous helper functions, error handlers                                                   |
+| src/backend/utils/pdf_processor.py         | HybridRAG/src/backend/utils/pdf_processor.py | PDF parsing, MySQL table storage, schema saving                                            |
+| src/backend/utils/schema_manager.py        | HybridRAG/src/backend/utils/schema_manager.py | Manages table_schema.json, schema CRUD, docs, CLI                                         |
+| src/backend/utils/table_schema.json        | HybridRAG/src/backend/utils/table_schema.json | Stores inferred schemas for tables from PDFs                                              |
+| src/backend/utils/upload_pdf.py            | HybridRAG/src/backend/utils/upload_pdf.py | PDF upload handling, triggers extraction/storage, manages embedding storage                      |
+| src/frontend/streamlit_app.py              | HybridRAG/src/frontend/streamlit_app.py   | Main Streamlit application file (UI)                                                             |
+| tests/                                     | HybridRAG/tests/                          | Automated tests                                                                                   |
+| uploads/                                   | HybridRAG/uploads/                        | Uploaded files (if any)                                                                          |
+| venv/                                      | HybridRAG/venv/                           | Python virtual environment                                                                       |
 
 ---
 
