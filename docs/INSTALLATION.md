@@ -74,6 +74,12 @@ copy .env.template .env
     *   **Cloud Provider & Region**: Choose according to your preference (e.g., `AWS`, `us-east-1`). These details will also be needed for your `.env` file.
     *   Click "Create Index".
 
+#### Get Supabase Public URL
+
+1. **Visit Supabase**: Visit [https://supabase.com/dashboard/sign-in](https://supabase.com/dashboard/sign-in) and sign in with your github account.
+2. **Make an Organization**: Register completely and make an organization in the process.
+3. **Get Supabase Host URL**: You will see something like: "postgresql://postgres:[YOUR-PASSWORD]@db.i*******************u.supabase.co:5432/postgres" to connect to the supabase database. Please copy 'db.i-------------u.supabase.co' to your .env file.
+
 ### 2. Configure .env File
 
 Open the `.env` file with a text editor and fill in your actual API keys and Pinecone details:
@@ -95,8 +101,13 @@ PINECONE_REGION="us-east-1"                  # Your Pinecone index region (e.g.,
 # Optional: Logging Level for backend
 LOG_LEVEL=INFO # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-# Database URL (Critical for table storage and querying)
-DATABASE_URL="mysql+mysqlconnector://user:password@host:port/database" # Replace with your MySQL connection string
+# PostgreSQL credentials
+DATABASE_USER=postgres
+DATABASE_PASSWORD=*Your_password*
+# postgresql://postgres:[YOUR-PASSWORD]@db.i*******************u.supabase.co:5432/postgres
+DATABASE_HOST=db.i*******************u.supabase.co
+DATABASE_NAME=postgres
+DATABASE_PORT=5432
 
 # Frontend Configuration
 ENDPOINT="http://localhost:8000" # URL for the backend API (default for FastAPI if PORT=8000)
