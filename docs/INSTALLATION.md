@@ -78,7 +78,7 @@ copy .env.template .env
 
 1. **Visit Supabase**: Visit [https://supabase.com/dashboard/sign-in](https://supabase.com/dashboard/sign-in) and sign in with your github account.
 2. **Make an Organization**: Register completely and make an organization in the process.
-3. **Get Supabase Host URL**: You will see something like: "postgresql://postgres:[YOUR-PASSWORD]@db.i*******************u.supabase.co:5432/postgres" to connect to the supabase database. Please copy 'db.i-------------u.supabase.co' to your .env file.
+3. **Get Supabase Host URL**: You will see something like: "postgresql://postgres.i***************u:password_here@aws-1-ap-south-1.pooler.supabase.com:6543/postgres" to connect to the supabase database.
 
 ### 2. Configure .env File
 
@@ -102,12 +102,12 @@ PINECONE_REGION="us-east-1"                  # Your Pinecone index region (e.g.,
 LOG_LEVEL=INFO # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 # PostgreSQL credentials
-DATABASE_USER=postgres
-DATABASE_PASSWORD=*Your_password*
-# postgresql://postgres:[YOUR-PASSWORD]@db.i*******************u.supabase.co:5432/postgres
-DATABASE_HOST=db.i*******************u.supabase.co
+DATABASE_HOST=aws-1-ap-south-1.pooler.supabase.com
 DATABASE_NAME=postgres
-DATABASE_PORT=5432
+DATABASE_PASSWORD=password_here
+DATABASE_PORT=6543
+DATABASE_URL=postgresql://postgres.i***************u:password_here@aws-1-ap-south-1.pooler.supabase.com:6543/postgres
+DATABASE_USER=postgres.i***************u
 
 # Frontend Configuration
 ENDPOINT="http://localhost:8000" # URL for the backend API (default for FastAPI if PORT=8000)
