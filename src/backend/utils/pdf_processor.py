@@ -671,6 +671,8 @@ Respond with valid JSON only:
         
         return columns
 
+
+#renamed the old extract and store content method to _legacy_extract_and_store_content
     def _legacy_extract_and_store_content(self, pdf_path: str) -> Dict[str, Any]:
         """
         DEPRECATED: Legacy PDF processing method.
